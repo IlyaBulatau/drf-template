@@ -1,0 +1,46 @@
+version: '3.7'
+services:
+
+  db:
+    image: postgres:16-bullseye
+    container_name: db
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "54321:${DB_PORT}"
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - TZ="GMT+3"
+      - PGTZ="GMT+3"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 3s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  backend:
+    build:
+      context: ../../
+      dockerfile: ./build/dev/Dockerfile
+    container_name: backend
+    hostname: backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../src/:/home/code
+    entrypoint: bash -c "python3 manage.py migrate && python3 manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
