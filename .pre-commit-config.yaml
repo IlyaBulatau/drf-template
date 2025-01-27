@@ -14,3 +14,12 @@ repos:
         language: system
         types: [ python ]
         exclude: ^(migrations/|settings/)
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy --config-file=./mypy.ini --explicit-package-bases .
+        language: system
+        types: [ python ]
+        require_serial: true
