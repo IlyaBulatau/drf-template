@@ -1,6 +1,8 @@
 
 exclude = [
     "migrations",
+    "settings.py",
+    "manage.py",
 ]
 
 line-length = 99
@@ -48,10 +50,7 @@ force-sort-within-sections = true
 lines-after-imports = 2
 # сортировка по длинне
 relative-imports-order = "closest-to-furthest"
-section-order = ["standard-library", "third-party", "module"]
-
-[lint.isort.sections]
-"module" = ["core"]
+known-first-party = ["core"]
 
 [lint.pylint]
 # Maximum number of arguments allowed for a function or method definition
