@@ -11,12 +11,21 @@ django = "4.2"
 djangorestframework = "^3.15.2"
 psycopg2-binary = "^2.9.9"
 django-filter = "^24.3"
-drf-spectacular = "^0.27.2"
+drf-spectacular = {extras = ["sidecar"], version = "^0.28.0"}
+gunicorn = "^23.0.0"
+boto3 = "^1.36.7"
+django-storages = "^1.14.4"
+pillow = "^11.1.0"
+django-cors-headers = "^4.6.0"
+httpx = "^0.28.1"
+drf-standardized-errors = {extras = ["openapi"], version = "^0.14.1"}
 
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.8.0"
 ruff = "^0.6.2"
+mypy = "^1.14.1"
+django-silk = "^5.3.2"
 
 [build-system]
 requires = ["poetry-core"]
