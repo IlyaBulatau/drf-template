@@ -50,7 +50,7 @@ force-sort-within-sections = true
 lines-after-imports = 2
 # сортировка по длинне
 relative-imports-order = "closest-to-furthest"
-known-first-party = ["core"]
+known-first-party = ["core", "users"]
 
 [lint.pylint]
 # Maximum number of arguments allowed for a function or method definition

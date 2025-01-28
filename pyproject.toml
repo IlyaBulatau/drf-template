@@ -19,13 +19,17 @@ pillow = "^11.1.0"
 django-cors-headers = "^4.6.0"
 httpx = "^0.28.1"
 drf-standardized-errors = {extras = ["openapi"], version = "^0.14.1"}
+django-redis = "^5.4.0"
+mypy = "1.13"
 
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.8.0"
 ruff = "^0.6.2"
-mypy = "^1.14.1"
 django-silk = "^5.3.2"
+django-stubs = {extras = ["compatible-mypy"], version = "^5.1.2"}
+boto3-stubs = {extras = ["s3"], version = "^1.36.7"}
+djangorestframework-stubs = {extras = ["compatible-mypy"], version = "^3.15.2"}
 
 [build-system]
 requires = ["poetry-core"]

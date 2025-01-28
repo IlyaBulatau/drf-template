@@ -1,35 +1,42 @@
-FROM python:3.11.9-slim-bullseye as builder
+FROM python:3.10.16-slim-bullseye as builder
 
 ENV \
+    PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-WORKDIR /install
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_VERSION=1.8.0 \
+    POETRY_HOME='/usr/local' \
+    PATH="$HOME/.local/bin:$PATH"
 
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
     gcc \
     python3-dev \
-    libpq-dev && \
+    libpq-dev \
+    curl && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=$POETRY_VERSION python3 -
 
-RUN pip install poetry && poetry export -o req.txt --without-hashes --dev
+WORKDIR $POETRY_HOME
 
-RUN --mount=type=cache,target=/root/.cache/pip/ \
-    pip install --upgrade pip && \
-    pip install --prefix=/install -r req.txt
+COPY pyproject.toml ./
 
-FROM python:3.11.9-slim-bullseye
+RUN poetry install --no-ansi --only main
 
-COPY --from=builder /install /usr/local
+# ---------------------------------------------------------------------------
+# development stage
+FROM builder as development
 
-WORKDIR /home/code
+COPY --from=builder $POETRY_HOME $POETRY_HOME
 
-COPY src/ .
+WORKDIR $POETRY_HOME
 
-RUN groupadd -r app && \
-    useradd -r -g app app && \
-    chmod 775 -R /home/code
+RUN poetry install --no-ansi --only dev
 
-USER app
+WORKDIR /code
+
+COPY ./src .

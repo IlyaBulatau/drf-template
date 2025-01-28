@@ -6,14 +6,14 @@ repos:
         entry: ruff check --fix
         language: system
         types: [ python ]
-        exclude: ^(migrations/|settings/)
+        exclude: (migrations/|settings/)
 
       - id: ruff-format
         name: ruff-format
         entry: ruff format
         language: system
         types: [ python ]
-        exclude: ^(migrations/|settings/)
+        exclude: (migrations/|settings/)
 
   - repo: local
     hooks:
@@ -22,4 +22,5 @@ repos:
         entry: mypy --config-file=./mypy.ini --explicit-package-bases .
         language: system
         types: [ python ]
+        pass_filenames: false
         require_serial: true

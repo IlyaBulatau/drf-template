@@ -5,8 +5,6 @@ from pathlib import Path
 from rest_framework import ISO_8601
 
 
-VERSION = 1
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = ENV("SECRET_KEY")
@@ -21,7 +19,7 @@ LANGUAGE_CODE = "ru-RU"
 
 TIME_ZONE = "Europe/Minsk"
 
-USE_I18N = False
+USE_I18N = True
 
 USE_TZ = True
 
@@ -29,41 +27,37 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Список всех людей, которые получают уведомления об ошибках кода.
-ADMINS = []
+APPEND_SLASH = True
 
 FIXTURE_DIRS = ["fixtures"]
 
-APPEND_SLASH = True
-
-if not DEBUG:
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
     CSRF_TRUSTED_ORIGINS = ENV("CSRF_TRUSTED_ORIGINS", "").split(",")
-
-if not DEBUG:
     ALLOWED_HOSTS = ENV("ALLOWED_HOSTS", "").split(",")
-
-if not DEBUG:
-    # only https
+    CORS_ALLOWED_ORIGINS = ENV("CORS_ALLOWED_ORIGINS", "").split(",")
     CSRF_COOKIE_SECURE = True
-
-if not DEBUG:
     LANGUAGE_COOKIE_HTTPONLY = True
-
-if not DEBUG:
     LANGUAGE_COOKIE_SECURE = True
-
-if not DEBUG:
     USE_X_FORWARDED_HOST = True
-
-if not DEBUG:
     SESSION_COOKIE_HTTPONLY = True
-
-if not DEBUG:
     SESSION_COOKIE_SECURE = True
 
-MODULES = []
+CORS_ALLOW_HEADERS = ["*"]
 
-THIRD_PARTY_APPS = ["rest_framework", "django_filters", "drf_spectacular"]
+MODULES = ["core", "users"]
+
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    "django_filters",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
+    "storages",
+    "corsheaders",
+    "drf_standardized_errors",
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -79,6 +73,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -97,11 +92,28 @@ DATABASES = {
     }
 }
 
+REDIS_HOST = ENV("REDIS_HOST")
+REDIS_PORT = ENV("REDIS_PORT")
+
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
     }
 }
+
+AWS_S3_ENDPOINT_URL = ENV("AWS_S3_ENDPOINT_URL")
+AWS_S3_ACCESS_KEY_ID = ENV("AWS_S3_ACCESS_KEY_ID")
+AWS_S3_SECRET_ACCESS_KEY = ENV("AWS_S3_SECRET_ACCESS_KEY")
+AWS_S3_REGION_NAME = ENV("AWS_S3_REGION_NAME")
+AWS_STORAGE_BUCKET_NAME = ENV("AWS_STORAGE_BUCKET_NAME", "static")
+
+DEFAULT_FILE_STORAGE = "storages.backends.s3.S3Storage"
+STATICFILES_STORAGE = "storages.backends.s3.S3Storage"
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -134,36 +146,41 @@ TEMPLATES = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 week in seconds
+SESSION_COOKIE_NAME = "sessionid"
+SESSION_SAVE_EVERY_REQUEST = True
+
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_RENDERER_CLASSES": [
-        "rest_framework.renderers.JSONRendere",
+        "rest_framework.renderers.JSONRenderer",
     ],
-    # набор парсеров при обращении к свойству request.data
+    "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
     ],
-    # throttle
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
     "DEFAULT_THROTTLE_RATES": {"anon": "10/second"},
-    # filter
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "SEARCH_PARAM": "search",
     "ORDERING_PARAM": "ordering",
-    # pagination
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "DEFAULT_PAGINATION_CLASS": "core.paginators.LimitOffsetPagination",
     "PAGE_SIZE": 100,
-    # version
-    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
     "DEFAULT_VERSION": "v1",
-    # swagger
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # datetime format
+    "DEFAULT_SCHEMA_CLASS": "drf_standardized_errors.openapi.AutoSchema",
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S.%fZ",
     "DATETIME_INPUT_FORMATS": ["%Y-%m-%dT%H:%M:%S.%fZ", ISO_8601],
-    # encoding
     "UNICODE_JSON": True,
     "COMPACT_JSON": False,
 }
@@ -293,3 +310,31 @@ LOGGING = {
         },
     },
 }
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Accounts API",
+    "VERSION": "0.0.1",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "ValidationErrorEnum": "drf_standardized_errors.openapi_serializers.ValidationErrorEnum.choices",
+        "ClientErrorEnum": "drf_standardized_errors.openapi_serializers.ClientErrorEnum.choices",
+        "ServerErrorEnum": "drf_standardized_errors.openapi_serializers.ServerErrorEnum.choices",
+        "ErrorCode401Enum": "drf_standardized_errors.openapi_serializers.ErrorCode401Enum.choices",
+        "ErrorCode403Enum": "drf_standardized_errors.openapi_serializers.ErrorCode403Enum.choices",
+        "ErrorCode404Enum": "drf_standardized_errors.openapi_serializers.ErrorCode404Enum.choices",
+        "ErrorCode405Enum": "drf_standardized_errors.openapi_serializers.ErrorCode405Enum.choices",
+        "ErrorCode406Enum": "drf_standardized_errors.openapi_serializers.ErrorCode406Enum.choices",
+        "ErrorCode415Enum": "drf_standardized_errors.openapi_serializers.ErrorCode415Enum.choices",
+        "ErrorCode429Enum": "drf_standardized_errors.openapi_serializers.ErrorCode429Enum.choices",
+        "ErrorCode500Enum": "drf_standardized_errors.openapi_serializers.ErrorCode500Enum.choices",
+    },
+    "POSTPROCESSING_HOOKS": ["drf_standardized_errors.openapi_hooks.postprocess_schema_enums"],
+}
+
+if DEBUG:
+    MIDDLEWARE.append("silk.middleware.SilkyMiddleware")
+    INSTALLED_APPS.append("silk")

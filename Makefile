@@ -1,11 +1,11 @@
 up:
-	docker compose -f build/dev/docker-compose.yaml up
+	docker compose up
 
 down:
-	docker compose -f build/dev/docker-compose.yaml down
+	docker compose down
 
 rebuild:
-	docker compose -f build/dev/docker-compose.yaml up --build
+	docker compose up --build
 
 logs:
-	docker compose -f build/dev/docker-compose.yaml logs -f
+	docker compose logs -f
