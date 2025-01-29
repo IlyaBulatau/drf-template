@@ -1,12 +1,14 @@
-version: '3.7'
+x-common-settings: &common-settings
+  restart: unless-stopped
+  env_file:
+    - .env
+
 services:
 
   db:
     image: postgres:16-bullseye
     container_name: db
-    restart: unless-stopped
-    env_file:
-      - .env
+    <<: *common-settings
     ports:
       - "54321:${DB_PORT}"
     environment:
@@ -27,8 +29,7 @@ services:
   storage:
     image: minio/minio:RELEASE.2024-12-18T13-15-44Z.fips
     container_name: storage
-    env_file:
-      - .env
+    <<: *common-settings
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -42,8 +43,7 @@ services:
   redis:
     image: redis:alpine
     container_name: redis
-    env_file:
-      - .env
+    <<: *common-settings
     ports:
       - "6380:${REDIS_PORT}"
     command: redis-server
@@ -56,19 +56,23 @@ services:
       target: development
     container_name: backend
     hostname: backend
-    restart: unless-stopped
-    env_file:
-      - .env
+    <<: *common-settings
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DJANGO_DEBUG=True
+      - PYTHONPATH=/usr/local/lib/python3.10/site-packages
     ports:
       - "8000:8000"
+      - "5678:5678"  # порт для отладчика
     volumes:
-      - ./src/:/home/code
+      - ./src/:/home/app
     entrypoint: > 
       bash -c "
         python3 manage.py init_bucket
         python3 manage.py collectstatic --noinput
         python3 manage.py migrate
-        gunicorn settings.wsgi:application --bind=0.0.0.0:8000 --reload --timeout=0
+        python3 -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
       "
     depends_on:
       db:

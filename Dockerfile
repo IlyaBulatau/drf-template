@@ -37,6 +37,6 @@ WORKDIR $POETRY_HOME
 
 RUN poetry install --no-ansi --only dev
 
-WORKDIR /code
+WORKDIR /home/app
 
 COPY ./src .

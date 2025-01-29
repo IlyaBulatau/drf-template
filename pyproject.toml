@@ -30,6 +30,7 @@ django-stubs = {extras = ["compatible-mypy"], version = "^5.1.2"}
 boto3-stubs = {extras = ["s3"], version = "^1.36.7"}
 djangorestframework-stubs = {extras = ["compatible-mypy"], version = "^3.15.2"}
 mypy = "1.13"
+debugpy = "^1.8.12"
 
 [build-system]
 requires = ["poetry-core"]
