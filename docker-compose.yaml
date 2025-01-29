@@ -72,7 +72,7 @@ services:
         python3 manage.py init_bucket
         python3 manage.py collectstatic --noinput
         python3 manage.py migrate
-        python3 -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
+        python3 -m debugpy --listen 0.0.0.0:5678 -m gunicorn settings.wsgi:application --bind 0.0.0.0:8000 --reload
       "
     depends_on:
       db:
